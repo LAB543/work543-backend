@@ -1,6 +1,7 @@
 module.exports = {
-    dbHost: 'localhost',        // DB host
-    dbUser: 'Username',         // DB username
-    dbPass: 'Password',         // DB password
-    dbName: 'Database_name',    // DB name
+    host: 'localhost',          // DB host
+    port: 3306,                 // DB port
+    user: 'Username',           // DB username
+    password: 'Password',       // DB password
+    database: 'Database_name'   // DB name
 };
