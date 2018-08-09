@@ -39,6 +39,10 @@ jspm_packages/
 # TypeScript v1 declaration files
 typings/
 
+# secret directory
+secret/db_config.js
+secret/jwt_config.js
+
 # Optional npm cache directory
 .npm
 
