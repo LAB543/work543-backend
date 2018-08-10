@@ -12,78 +12,114 @@ var dbConnection = db.createConnection(dbConfig);
 
 module.exports = function (req, res, next) {
 
-    console.log(req.body);
-
     if(req.route.path === "/login") {
 
         var username = null;
         var password = null;
 
-        if(req.method === "GET") {
-            username = req.query !== {} && req.query.username ? req.query.username : null;
-            password = req.query !== {} && req.query.password ? req.query.password : null;
-        } else if(req.method === "POST") {
-            username = req.body !== {} && req.body.username ? req.body.username : null;
-            password = req.body !== {} && req.body.password ? req.body.password : null;
-        } else {
-            console.log("500: Wrong method");
-            res.status(500)
-                .send({message: "Wrong method"});
+        if(req.method === "GET" || req.method === "POST") {
 
-            return;
-        }
+            // getting parameters
+            if(req.body !== {}
+                && typeof(req.body.username) !== "undefined"
+                && typeof(req.body.password) !== "undefined") {
+                username = req.body.username;
+                password = req.body.password;
+            } else if(req.params !== {}
+                && typeof(req.params.username) !== "undefined"
+                && typeof(req.params.password) !== "undefined") {
+                username = req.params.username;
+                password = req.params.password;
+            } else if(req.query !== {}
+                && typeof(req.query.username) !== "undefined"
+                && typeof(req.query.password) !== "undefined") {
+                username = req.query.username;
+                password = req.query.password;
+            }
 
-        if(username !== null && password !== null) {
+            // processing
+            if(username !== null && password !== null
+                && username !== "" && password !== "") {
 
-            var query = "SELECT * FROM `Users` "
-                +"WHERE `username`='"+username+"' "
-                +"AND `password`='"+password+"';";
+                var query = "SELECT * FROM `Users` "
+                    +"WHERE `username`='"+username+"' "
+                    +"AND `password`='"+password+"';";
 
-            dbConnection.query(query, function(err, rows) {
-                if(err) throw err;
+                dbConnection.query(query, function(err, rows) {
+                    if(err) throw err;
 
-                //console.log('The solution is: ', rows);
+                    if(rows.length > 0) {   // login success
 
-                if(rows.length > 0) {   // login success
-                    //res.json(rows)
+                        var payload = { id: rows[0].id };
+                        var token = jwt.encode(payload, jwtConfig.jwtSecret);
 
-                    var payload = { id: rows[0].id };
-                    var token = jwt.encode(payload, jwtConfig.jwtSecret);
+                        res.json({
+                            code: 200,
+                            type: req.method,
+                            message: "OK",
+                            data: {
+                                user: {
+                                    id: rows[0].id,
+                                    username: rows[0].username,
+                                    firstName: rows[0].first_name,
+                                    lastName: rows[0].last_name,
+                                    email:  rows[0].email,
+                                    createdAt:  rows[0].created_at,
+                                    udpatedAt:  rows[0].updated_at,
+                                },
+                                token: token
+                            }
+                        });
+                    } else {                // fail to login
+                        res.status(400)
+                            .send({
+                                code: 400,
+                                type: req.method,
+                                message: "Invalid username/password supplied"
+                            });
+                    }
+                });
 
-                    res.json({
-                        user: {
-                            id: rows[0].id,
-                            username: rows[0].username,
-                            firstName: rows[0].first_name,
-                            lastName: rows[0].last_name,
-                            email:  rows[0].email,
-                            createdAt:  rows[0].created_at,
-                            udpatedAt:  rows[0].updated_at,
-                        },
-                        token: token
+            } else {    // missing parameters
+                res.status(400)
+                    .send({
+                        code: 400,
+                        type: req.method,
+                        message: "Missing parameter"
                     });
-                } else {                // fail to login
-                    console.log("401: Unauthorization");
-                    res.status(401)
-                        .send({message: "Unauthorization"});
-                }
-            });
+            }
 
         } else {
-            console.log("401: Missing parameter");
-            res.status(401)
-                .send({message: "Missing parameter"});
+
+            // invalid method
+            res.status(400)
+                .send({
+                    code: 400,
+                    type: req.method,
+                    message: "Invalid method"
+                });
+
         }
     } else if(req.route.path === "/logout") {
-        console.log("500: temp");
-        res.status(500)
-            .send({message: "Temp"});
+
+        // any method supported
+        res.status(200)
+            .send({
+                code: 200,
+                type: req.method,
+                message: "OK"
+            });
+
     } else {
-        console.log("500: Unexpected connection");
-        res.status(500)
-            .send({message: "Unexpected connection"});
+
+        // invalid connection
+        res.status(400)
+            .send({
+                code: 200,
+                type: req.method,
+                message: "Invalid connection"
+            });
+
     }
-
-
 
 };
