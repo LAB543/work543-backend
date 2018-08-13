@@ -25,9 +25,13 @@ module.exports = function (req, res, next) {
         dbConnection.query(query, function(err, rows) {
             if(err) throw err;
 
-            //console.log('The solution is: ', rows);
-            //res.send(rows);
-            res.json(rows)
+            res.status(200)
+                .send({
+                    code: 200,
+                    type: req.method,
+                    data: rows,
+                    message: "OK"
+                });
         });
 
     } else if(req.method === 'POST') {
@@ -49,13 +53,45 @@ module.exports = function (req, res, next) {
                 +"('"+username+"', PASSWORD('"+password+"'), '"+email+"', '"+firstName+"', '"+lastName+"', NOW(), NOW());;";
 
             dbConnection.query(query, function(err, rows) {
-                if (err) throw err;
-                res.status(200)
-                    .send({message: "OK"});
+                if (err) {
+                    //throw err;
+
+                    console.log(err);
+
+                    switch(err.code) {
+                        case 'ER_DUP_ENTRY':
+                            return res.status(500)
+                                .send({
+                                    code: 500,
+                                    type: req.method,
+                                    message: "Username or email already exist"
+                                });
+                            break;
+                        default:
+                            return res.status(500)
+                                .send({
+                                    code: 500,
+                                    type: req.method,
+                                    message: "Unexpected error"
+                                });
+                            break;
+                    }
+                }
+
+                res.status(201)
+                    .send({
+                        code: 201,
+                        type: req.method,
+                        message: "OK"
+                    });
             });
         } else {
             res.status(401)
-                .send({message: "Missing parameter"});
+                .send({
+                    code: 401,
+                    type: req.method,
+                    message: "Missing parameter"
+                });
         }
 
 

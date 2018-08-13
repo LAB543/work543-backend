@@ -43,7 +43,7 @@ module.exports = function (req, res, next) {
 
                 var query = "SELECT * FROM `Users` "
                     +"WHERE `username`='"+username+"' "
-                    +"AND `password`='"+password+"';";
+                    +"AND `password`=PASSWORD('"+password+"');";
 
                 dbConnection.query(query, function(err, rows) {
                     if(err) throw err;
@@ -71,9 +71,9 @@ module.exports = function (req, res, next) {
                             }
                         });
                     } else {                // fail to login
-                        res.status(400)
+                        res.status(401)
                             .send({
-                                code: 400,
+                                code: 401,
                                 type: req.method,
                                 message: "Invalid username/password supplied"
                             });
@@ -92,9 +92,9 @@ module.exports = function (req, res, next) {
         } else {
 
             // invalid method
-            res.status(400)
+            res.status(405)
                 .send({
-                    code: 400,
+                    code: 405,
                     type: req.method,
                     message: "Invalid method"
                 });

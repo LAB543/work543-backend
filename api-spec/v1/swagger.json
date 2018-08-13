@@ -44,22 +44,16 @@
             "schema":{
               "user" : { "$ref":"#/definitions/User" },
               "token": "<사용자 토큰>"
-            },
-            "headers":{
-              "X-Rate-Limit":{
-                "type":"integer",
-                "format":"int32",
-                "description":"calls per hour allowed by the user"
-              },
-              "X-Expires-After":{
-                "type":"string",
-                "format":"date-time",
-                "description":"date in UTC when token expires"
-              }
             }
           },
           "400":{
+            "description":"Missing parameter"
+          },
+          "401":{
             "description":"Invalid username/password supplied"
+          },
+          "405":{
+            "description":"Invalid method"
           }
         }
       }
@@ -104,8 +98,8 @@
           }
         ],
         "responses":{
-          "default":{
-            "description":"successful operation"
+          "201":{
+            "description":"회원가입 성공"
           }
         }
       }
