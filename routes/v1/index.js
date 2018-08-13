@@ -1,6 +1,15 @@
 var express = require('express');
 var router = express.Router();
 
+// jwt
+var jwt = require('jwt-simple');
+var jwtConfig = require('../../secret/jwt_config');
+
+// DB connection
+var db      = require('mysql');
+var dbConfig = require('../../secret/db_config');
+var dbConnection = db.createConnection(dbConfig);
+
 // apis
 var userController = require('./user.controller');
 var authController = require('./auth.controller');
@@ -27,7 +36,7 @@ router.use(function(req, res, next) {
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
     // 무인증 Whitelist
-    var whitelist = ["/users", "/user", "/login", "/logout"];
+    var whitelist = ["/users", "/user", "/login"];
     var isWhitelist = whitelist.find(function(e) {
         return e == req.url;
     });
@@ -43,15 +52,61 @@ router.use(function(req, res, next) {
     if(!token) {
 
         return res.status(403).json({
-            success: false,
-            message: 'not logged in'
-        })
+            code: 403,
+            type: req.method,
+            message: "Missing token: x-access-token required"
+        });
 
     }
 
-    console.log(token);
+    // 토큰 검증
+    try {
+        var decodedToken = jwt.decode(token, jwtConfig.jwtSecret);
+    } catch(e) {
+        console.log(e);
+        return res.status(403).json({
+            code: 403,
+            type: req.method,
+            message: "Invalid token"
+        });
+    }
 
-    next();
+    if(decodedToken.id === undefined || decodedToken.username === undefined) {
+        //
+        return res.status(403).json({
+            code: 403,
+            type: req.method,
+            message: "Invalid token"
+        });
+
+    }
+
+    var query = "SELECT * FROM `Users` "
+        +"WHERE `id`='"+decodedToken.id+"' "
+        +"AND `username`='"+decodedToken.username+"' "
+        +"AND `token`='"+token+"' "
+        +"AND `token_expiration` >= NOW();";
+
+    dbConnection.query(query, function(err, rows) {
+        if(rows.length < 1) {
+            return res.status(403).json({
+                code: 403,
+                type: req.method,
+                message: "Invalid token: Token not matched or expired"
+            });
+        } else {
+            // expiration datetime update
+            dbConnection.query(
+                "UPDATE `Users` "
+                +"SET `token_expiration` = date_add(now(), interval +3 day) "
+                +"WHERE `id`='"+decodedToken.id+"' "
+                +"AND `username`='"+decodedToken.username+"' "
+                +"AND `token`='"+token+"';");
+
+            next();
+        }
+    });
+
 });
 
 /* GET home page. */

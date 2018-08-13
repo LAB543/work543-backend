@@ -11,7 +11,7 @@
   },
   "host":"localhost:3000", "basePath":"/v1",
   "tags":[
-    { "name":"user", "description":"Operations about user" },
+    { "name":"User", "description":"Operations about user" },
     { "name":"기타", "description":"기타 명령" }
   ],
   "schemes":[ "http" ],
@@ -81,7 +81,7 @@
     },
     "/user":{
       "post":{
-        "tags":[ "user" ],
+        "tags":[ "User" ],
         "summary":"회원가입",
         "description":"",
         "operationId":"createUser",

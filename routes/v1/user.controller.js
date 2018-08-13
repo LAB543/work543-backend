@@ -1,6 +1,10 @@
 var express = require('express');
 var router = express.Router();
 
+// jwt
+var jwt = require('jwt-simple');
+var jwtConfig = require('../../secret/jwt_config');
+
 // DB connection
 var db      = require('mysql');
 var dbConfig = require('../../secret/db_config');
@@ -8,28 +12,68 @@ var dbConnection = db.createConnection(dbConfig);
 
 module.exports = function (req, res, next) {
 
-    console.log(req.method);
-
     if(req.method === 'GET') {
 
-        console.log(req.params);
+        // 토큰 전달
+        const token = req.headers['x-access-token'] || req.query.token;
 
-        var query = "SELECT * FROM `Users`";
+        // 토큰이 없는 경우
+        if(!token) {
 
-        if(req.params !== {} && typeof(req.params.username) !== "undefined") {
-            query += " WHERE `username`='"+req.params.username+"';";
+            return res.status(403).json({
+                code: 403,
+                type: req.method,
+                message: "x-access-token required"
+            })
+
         }
 
-        console.log(query);
+        var decodedToken = jwt.decode(token, jwtConfig.jwtSecret);
+
+        var query = "SELECT "
+            +"`id`, `username`, `email`, "
+            +"`first_name` AS `firstName`, `last_name` AS `lastName`, "
+            +"`created_at` AS `createdAt`, `updated_at` AS `updatedAt` FROM `Users` "
+            +"WHERE `id`='"+decodedToken.id+"';";
 
         dbConnection.query(query, function(err, rows) {
-            if(err) throw err;
+            if (err) {
+                //throw err;
+
+                switch(err.code) {
+                    case 'ER_DUP_ENTRY':
+                        return res.status(500)
+                            .send({
+                                code: 500,
+                                type: req.method,
+                                message: "Username or email already exist"
+                            });
+                        break;
+                    default:
+                        return res.status(500)
+                            .send({
+                                code: 500,
+                                type: req.method,
+                                message: "Unexpected error"
+                            });
+                        break;
+                }
+            }
+
+            if(rows.length < 1) {
+                return res.status(401)
+                    .send({
+                        code: 401,
+                        type: req.method,
+                        message: "User can not found"
+                    });
+            }
 
             res.status(200)
                 .send({
                     code: 200,
                     type: req.method,
-                    data: rows,
+                    data: rows[0],
                     message: "OK"
                 });
         });
@@ -55,8 +99,6 @@ module.exports = function (req, res, next) {
             dbConnection.query(query, function(err, rows) {
                 if (err) {
                     //throw err;
-
-                    console.log(err);
 
                     switch(err.code) {
                         case 'ER_DUP_ENTRY':
@@ -90,17 +132,23 @@ module.exports = function (req, res, next) {
                 .send({
                     code: 401,
                     type: req.method,
-                    message: "Missing parameter"
+                    message: "Missing parameter: username, password, firstName, lastName, email required"
                 });
         }
 
 
-    } else if(req.method === 'PUT') {
+    // } else if(req.method === 'PUT') {
 
-    } else if(req.method === 'DELETE') {
+    // } else if(req.method === 'DELETE') {
 
     } else {
-
+        // invalid method
+        res.status(405)
+            .send({
+                code: 405,
+                type: req.method,
+                message: "Invalid method: GET, POST accepted"
+            });
     }
 
 };
