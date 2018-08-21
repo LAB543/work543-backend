@@ -10,6 +10,11 @@ var db      = require('mysql');
 var dbConfig = require('../../secret/db_config');
 var dbConnection = db.createConnection(dbConfig);
 
+// get model
+var models = require('../../models/index.js');
+
+var bcrypt = require('bcrypt-nodejs');
+
 module.exports = function (req, res, next) {
 
     if(req.method === 'GET') {
@@ -29,6 +34,23 @@ module.exports = function (req, res, next) {
         }
 
         var decodedToken = jwt.decode(token, jwtConfig.jwtSecret);
+
+        models.User.findOne({
+          attributes: [
+            'id', 'username', 'email',
+            'firstName', 'lastName',
+            'createAt','updatedAt'
+          ],
+          where: { id: decodedToken.id }
+        }).then(user => {
+          console.log(user);
+        }).catch(err => {
+          console.log(err);
+        });
+
+
+        /*
+
 
         var query = "SELECT "
             +"`id`, `username`, `email`, "
@@ -78,6 +100,8 @@ module.exports = function (req, res, next) {
                 });
         });
 
+        */
+
     } else if(req.method === 'POST') {
 
         // user creation
@@ -85,7 +109,9 @@ module.exports = function (req, res, next) {
         password = req.body !== {} && req.body.password ? req.body.password : null;
         firstName = req.body !== {} && req.body.firstName ? req.body.firstName : null;
         lastName = req.body !== {} && req.body.lastName ? req.body.lastName : null;
-        email = req.email !== {} && req.body.email ? req.body.email : null;
+        email = req.body !== {} && req.body.email ? req.body.email : null;
+
+        console.log(req.body);
 
         if( username !== null
             && password !== null
@@ -93,40 +119,48 @@ module.exports = function (req, res, next) {
             && lastName !== null
             && email !== null) {
 
-            var query = "INSERT INTO `Users` (`username`, `password`, `email`, `first_name`, `last_name`, `updated_at`, `created_at`) VALUES "
-                +"('"+username+"', PASSWORD('"+password+"'), '"+email+"', '"+firstName+"', '"+lastName+"', NOW(), NOW());;";
+          bcrypt.hash(password, null, null, function(err, hash) {
 
-            dbConnection.query(query, function(err, rows) {
-                if (err) {
-                    //throw err;
+            models.User.create({
+              username: username,
+              password: hash,
+              firstName: firstName,
+              lastName: lastName,
+              email: email
+            }).then(user => {
 
-                    switch(err.code) {
-                        case 'ER_DUP_ENTRY':
-                            return res.status(500)
-                                .send({
-                                    code: 500,
-                                    type: req.method,
-                                    message: "Username or email already exist"
-                                });
-                            break;
-                        default:
-                            return res.status(500)
-                                .send({
-                                    code: 500,
-                                    type: req.method,
-                                    message: "Unexpected error"
-                                });
-                            break;
-                    }
-                }
+              res.status(201)
+                .send({
+                  code: 201,
+                  type: req.method,
+                  message: "OK"
+                });
 
-                res.status(201)
+            }).catch(err => {
+
+              switch(err.parent.code) {
+                case 'ER_DUP_ENTRY':
+                  return res.status(500)
                     .send({
-                        code: 201,
-                        type: req.method,
-                        message: "OK"
+                      code: 500,
+                      type: req.method,
+                      message: "Username or email already exist"
                     });
+                  break;
+                default:
+                  return res.status(500)
+                    .send({
+                      code: 500,
+                      type: req.method,
+                      message: err.parent.error
+                    });
+                  break;
+              }
+
             });
+
+          });
+
         } else {
             res.status(401)
                 .send({

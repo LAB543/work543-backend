@@ -10,6 +10,11 @@ var db      = require('mysql');
 var dbConfig = require('../../secret/db_config');
 var dbConnection = db.createConnection(dbConfig);
 
+// get model
+var models = require('../../models/index.js');
+
+var bcrypt = require('bcrypt-nodejs');
+
 module.exports = function (req, res, next) {
 
     if(req.route.path === "/login") {
@@ -41,56 +46,38 @@ module.exports = function (req, res, next) {
             if(username !== null && password !== null
                 && username !== "" && password !== "") {
 
-                var query = "SELECT "
-                    +"`id`, `username`, `email`, "
-                    +"`first_name` AS `firstName`, `last_name` AS `lastName`, "
-                    +"`created_at` AS `createdAt`, `updated_at` AS `updatedAt` FROM `Users` "
-                    +"WHERE `username`='"+username+"' "
-                    +"AND `password`=PASSWORD('"+password+"');";
+              bcrypt.hash(password, null, null, function(err, hash) {
 
-                dbConnection.query(query, function(err, rows) {
-                    if (err) {
-                        //throw err;
-                        console.log(err);
+                models.User.findOne({
+                  attributes: [
+                    'id', 'username', 'email',
+                    'firstName', 'lastName',
+                    'createdAt','updatedAt'
+                  ],
+                  where: { username: username, password: hash }
+                }).then(user => {
+                  console.log(user);
+
+                  res.json({
+                    code: 200,
+                    type: req.method,
+                    message: "OK",
+                    data: {
+                      //user: rows[0],
+                      //token: token
                     }
-
-                    if(rows.length > 0) {   // login success
-
-
-                        var payload = {
-                            id: rows[0].id,
-                            username: rows[0].username
-                        };
-                        var token = jwt.encode(payload, jwtConfig.jwtSecret);
-
-                        // expiration config 변환 필요
-                        dbConnection.query(
-                            "UPDATE `Users` "
-                            +"SET `token` = '"+token+"', "
-                            +"`token_expiration` = date_add(now(), interval +3 day) "
-                            +"WHERE `Users`.`id` = "+rows[0].id+";",
-                            function(err, rows) {
-                                return;
-                        });
-
-                        res.json({
-                            code: 200,
-                            type: req.method,
-                            message: "OK",
-                            data: {
-                                user: rows[0],
-                                token: token
-                            }
-                        });
-                    } else {                // fail to login
-                        res.status(401)
-                            .send({
-                                code: 401,
-                                type: req.method,
-                                message: "Invalid username/password supplied"
-                            });
-                    }
+                  });
+                }).catch(err => {
+                  console.log(err);
+                  res.status(401)
+                    .send({
+                      code: 401,
+                      type: req.method,
+                      message: "Invalid username/password supplied"
+                    });
                 });
+              });
+
 
             } else {    // missing parameters
                 res.status(400)

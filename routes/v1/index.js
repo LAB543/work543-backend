@@ -114,9 +114,8 @@ router.get('/', function(req, res, next) {
     res.render('index', { title: 'Express' });
 });
 
-router.all('/user', userController);
 router.all('/users', userController);
-router.all('/user/:username', userController);
+router.all('/users/:id', userController);
 
 router.all('/system', function (req, res, next) {
 

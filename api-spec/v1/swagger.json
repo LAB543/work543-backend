@@ -1,17 +1,28 @@
 {
-  "swagger":"2.0",
+  "swagger":"3.0",
   "info":{
-    "description":"This is a sample server Petstore server.  You can find out more about Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).  For this sample, you can use the api key `special-key` to test the authorization filters.",
-    "version":"1.0.0",
     "title":"Work543",
+    "description":"This is a sample server Petstore server.  You can find out more about Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).  For this sample, you can use the api key `special-key` to test the authorization filters.",
+    "version": "0.5.0",
     "termsOfService":"http://work543.com/tos/",
     "contact":{
       "email":"it@lab543.com"
     }
   },
-  "host":"localhost:3000", "basePath":"/v1",
+  "servers": [
+    {
+      "url": "http://api.work543.com/v1/",
+      "description": "Production server (uses live data)"
+    },
+    {
+      "url": "http://localhost:3000/v1/",
+      "description": "Sandbox server (uses test data)"
+    }
+  ],
   "tags":[
     { "name":"User", "description":"Operations about user" },
+    { "name":"Project", "description":"Operations about project" },
+    { "name":"Resource", "description":"Operations about reousrce" },
     { "name":"기타", "description":"기타 명령" }
   ],
   "schemes":[ "http" ],
@@ -79,10 +90,110 @@
         }
       }
     },
-    "/user":{
+    "/users":{
       "post":{
         "tags":[ "User" ],
         "summary":"회원가입",
+        "description":"",
+        "operationId":"createUser",
+        "produces":[ "application/json" ],
+        "parameters":[
+          {
+            "in":"body",
+            "name":"body",
+            "description":"Created user object",
+            "required":true,
+            "schema":{
+              "$ref":"#/definitions/User"
+            }
+          }
+        ],
+        "responses":{
+          "201":{
+            "description":"회원가입 성공"
+          }
+        }
+      }
+    },
+    "/projects":{
+      "get": {
+        "tags": [
+          "Project"
+        ],
+        "summary": "프로젝트 조회",
+        "description": "",
+        "operationId": "createUser",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Created user object",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "회원가입 성공"
+          }
+        }
+      },
+      "post":{
+        "tags":[ "Project" ],
+        "summary":"프로젝트 생성",
+        "description":"",
+        "operationId":"createUser",
+        "produces":[ "application/json" ],
+        "parameters":[
+          {
+            "in":"body",
+            "name":"body",
+            "description":"Created user object",
+            "required":true,
+            "schema":{
+              "$ref":"#/definitions/User"
+            }
+          }
+        ],
+        "responses":{
+          "201":{
+            "description":"회원가입 성공"
+          }
+        }
+      }
+    },
+    "/resources":{
+      "get":{
+        "tags":[ "Resource" ],
+        "summary":"리소스 조회",
+        "description":"",
+        "operationId":"createUser",
+        "produces":[ "application/json" ],
+        "parameters":[
+          {
+            "in":"body",
+            "name":"body",
+            "description":"Created user object",
+            "required":true,
+            "schema":{
+              "$ref":"#/definitions/User"
+            }
+          }
+        ],
+        "responses":{
+          "201":{
+            "description":"회원가입 성공"
+          }
+        }
+      },
+      "post":{
+        "tags":[ "Resource" ],
+        "summary":"리소스 생성",
         "description":"",
         "operationId":"createUser",
         "produces":[ "application/json" ],

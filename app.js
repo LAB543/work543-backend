@@ -4,13 +4,15 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+YAML = require('yamljs');
 
 //cors
 var cors = require('cors');
 
 // swagger-ui
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./api-spec/v1/swagger.json');
+//const swaggerDocument = require('./api-spec/v1/swagger.yaml');
+const swaggerDocument = YAML.load('./api-spec/v1/swagger.yaml');
 
 // router
 var indexRouter = require('./routes/index');
