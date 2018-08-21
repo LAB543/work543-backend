@@ -66,6 +66,7 @@ secret/jwt_config.js
 
 # idea development env
 .idea
+package-lock.json
 
 
 #db
