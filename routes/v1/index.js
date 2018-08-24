@@ -1,18 +1,19 @@
-var express = require('express');
-var router = express.Router();
+var express = require('express')
+var router = express.Router()
 
 // jwt
-var jwt = require('jwt-simple');
-var jwtConfig = require('../../secret/jwt_config');
+var jwt = require('jwt-simple')
+var jwtConfig = require('../../secret/jwt_config')
 
-// DB connection
-var db      = require('mysql');
-var dbConfig = require('../../secret/db_config');
-var dbConnection = db.createConnection(dbConfig);
+const Sequelize = require('sequelize')
+const Op = Sequelize.Op
+
+// get model
+var models = require('../../models/index.js')
 
 // apis
-var userController = require('./user.controller');
-var authController = require('./auth.controller');
+var userController = require('./user.controller')
+var authController = require('./auth.controller')
 
 /*
 var passport = require('passport');
@@ -30,102 +31,101 @@ var params = {
 */
 
 // middle ware
-router.use(function(req, res, next) {
-    // CORS
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+router.use(function (req, res, next) {
+  // CORS
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', 'X-Requested-With')
 
-    // 무인증 Whitelist
-    var whitelist = ["/users", "/user", "/login"];
-    var isWhitelist = whitelist.find(function(e) {
-        return e == req.url;
-    });
+  // 무인증 Whitelist
+  var whitelist = ['/users', '/user', '/login']
+  var isWhitelist = whitelist.find(function (e) {
+    return e === req.url
+  })
 
-    if(isWhitelist !== undefined) {
-        return next();
+  if (isWhitelist !== undefined) {
+    return next()
+  }
+
+  // 토큰 전달
+  const token = req.headers['x-access-token'] || req.query.token
+
+  // 토큰이 없는 경우
+  if (!token) {
+    return res.status(403).json({
+      code: 403,
+      type: req.method,
+      message: 'Missing token: x-access-token required'
+    })
+  }
+
+  // 토큰 검증
+  try {
+    var decodedToken = jwt.decode(token, jwtConfig.jwtSecret)
+  } catch (e) {
+    console.log(e)
+    return res.status(403).json({
+      code: 403,
+      type: req.method,
+      message: 'Invalid token'
+    })
+  }
+
+  if (decodedToken.id === undefined || decodedToken.username === undefined) {
+    //
+    return res.status(403).json({
+      code: 403,
+      type: req.method,
+      message: 'Invalid token'
+    })
+  }
+
+  models.User.findOne({
+    attributes: [
+      'id'
+    ],
+    where: {
+      id: decodedToken.id,
+      username: decodedToken.username,
+      token: token,
+      token_expiration: {
+        [Op.gte]: new Date()
+      }
     }
-
-    // 토큰 전달
-    const token = req.headers['x-access-token'] || req.query.token;
-
-    // 토큰이 없는 경우
-    if(!token) {
-
-        return res.status(403).json({
-            code: 403,
-            type: req.method,
-            message: "Missing token: x-access-token required"
-        });
-
+  }).then((user) => {
+    if (!user) throw new Error('Invalid token: Token not matched or expired')
+    else {
+      models.User.update({
+        token_expiration: new Date(new Date() + 3 * 24 * 60 * 60 * 1000)
+      }, {
+        where: { id: user.dataValues.id }
+      }).then(next())
+        .catch((err) => {
+          res.status(403)
+            .send({
+              code: 403,
+              type: req.method,
+              message: err.message
+            })
+        })
     }
-
-    // 토큰 검증
-    try {
-        var decodedToken = jwt.decode(token, jwtConfig.jwtSecret);
-    } catch(e) {
-        console.log(e);
-        return res.status(403).json({
-            code: 403,
-            type: req.method,
-            message: "Invalid token"
-        });
-    }
-
-    if(decodedToken.id === undefined || decodedToken.username === undefined) {
-        //
-        return res.status(403).json({
-            code: 403,
-            type: req.method,
-            message: "Invalid token"
-        });
-
-    }
-
-    var query = "SELECT * FROM `Users` "
-        +"WHERE `id`='"+decodedToken.id+"' "
-        +"AND `username`='"+decodedToken.username+"' "
-        +"AND `token`='"+token+"' "
-        +"AND `token_expiration` >= NOW();";
-
-    dbConnection.query(query, function(err, rows) {
-        if(rows.length < 1) {
-            return res.status(403).json({
-                code: 403,
-                type: req.method,
-                message: "Invalid token: Token not matched or expired"
-            });
-        } else {
-            // expiration datetime update
-            dbConnection.query(
-                "UPDATE `Users` "
-                +"SET `token_expiration` = date_add(now(), interval +3 day) "
-                +"WHERE `id`='"+decodedToken.id+"' "
-                +"AND `username`='"+decodedToken.username+"' "
-                +"AND `token`='"+token+"';");
-
-            next();
-        }
-    });
-
-});
+  })
+})
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-    res.render('index', { title: 'Express' });
-});
+router.get('/', function (req, res, next) {
+  res.render('index', { title: 'Express' })
+})
 
-router.all('/users', userController);
-router.all('/users/:id', userController);
+router.all('/users', userController)
+router.all('/users/:id', userController)
 
 router.all('/system', function (req, res, next) {
+  return res.status(200).json({
+    message: 'permission get'
+  })
+})
 
-    return res.status(200).json({
-        message: 'permission get'
-    })
+router.all('/login', authController)
+router.all('/logout', authController)
 
-});
-
-router.all('/login', authController);
-router.all('/logout', authController);
-
-module.exports = router;
+module.exports = router

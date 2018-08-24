@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 
 module.exports = (sequelize, DataTypes) => {
   return sequelize.define('User', {
@@ -35,6 +35,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
       allowNull: false
+    },
+    isAdmin: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     }
   }, {
     // define the table's name
@@ -42,11 +46,11 @@ module.exports = (sequelize, DataTypes) => {
 
     name: {
       singular: 'User',
-      plural: 'Users',
+      plural: 'Users'
     },
 
     // And deletedAt to be called destroyTime (remember to enable paranoid for this to work)
     deletedAt: 'destroyTime',
     paranoid: true
   })
-};
+}

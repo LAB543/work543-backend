@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 
 module.exports = (sequelize, DataTypes) => {
   return sequelize.define('Project', {
@@ -17,11 +17,11 @@ module.exports = (sequelize, DataTypes) => {
 
     name: {
       singular: 'Project',
-      plural: 'Projects',
+      plural: 'Projects'
     },
 
     // And deletedAt to be called destroyTime (remember to enable paranoid for this to work)
     deletedAt: 'destroyTime',
     paranoid: true
   })
-};
+}
